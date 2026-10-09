@@ -274,15 +274,19 @@ export const updateTaskStatus = async (taskId, status, notes = null) => {
 /* Human Review Queue                                                 */
 /* ------------------------------------------------------------------ */
 
-export const getReviews = async (priority = 'All') => {
-  const res = await fetchJson(`/reviews?priority=${encodeURIComponent(priority)}`)
+export const getReviews = async (priority = 'All', patientId = null) => {
+  let url = `/reviews?priority=${encodeURIComponent(priority)}`
+  if (patientId && patientId !== 'All' && patientId.toLowerCase() !== 'demo') {
+    url += `&patient_id=${encodeURIComponent(patientId)}`
+  }
+  const res = await fetchJson(url)
   const cases = res.review_cases || []
 
   return cases.map((c) => ({
     id: c.case_id,
     caseId: c.case_id,
     patientId: c.patient_id,
-    patientName: 'Patient ' + c.patient_id.slice(0, 8),
+    patientName: c.patient_name || ('Patient ' + c.patient_id.slice(0, 8)),
     reason: c.reason,
     originalInstruction: c.original_instruction,
     aiInterpretation: c.ai_interpretation,
@@ -299,7 +303,7 @@ export const getReview = async (reviewId) => {
     id: c.case_id,
     caseId: c.case_id,
     patientId: c.patient_id,
-    patientName: 'Patient ' + c.patient_id.slice(0, 8),
+    patientName: c.patient_name || ('Patient ' + c.patient_id.slice(0, 8)),
     reason: c.reason,
     originalInstruction: c.original_instruction,
     aiInterpretation: c.ai_interpretation,
@@ -411,15 +415,53 @@ export const getSources = async (patientId) => {
   const plan = await fetchJson(`/patients/${patientId}/plan?lang=en`)
   const tasks = await getTasks(patientId)
 
-  return [
-    {
-      id: 'SRC-001',
-      title: 'Discharge Summary Document',
-      patientName: plan.patient_name,
-      documentName: 'Hospital Discharge Summary.pdf',
-      dischargeDate: plan.discharge_date,
-      extractedItemsCount: tasks.length + (plan.care_instructions?.length || 0),
-      confidenceAverage: 0.88,
-    },
-  ]
+  const docName = plan.patient_name
+    ? `${plan.patient_name.replace(/\s+/g, '_')}_Discharge.pdf`
+    : 'Discharge_Summary.pdf'
+  const citations = []
+
+  // Add task citations
+  tasks.forEach((t, idx) => {
+    const isMed = (t.category || '').toLowerCase().includes('medication')
+    citations.push({
+      id: `SRC-TASK-${idx + 1}`,
+      category: isMed ? 'medications' : 'tasks',
+      categoryLabel: isMed ? 'Medications' : (t.category || 'Tasks'),
+      item: t.title,
+      page: t.source?.page || 1,
+      section: t.source?.section || t.category || 'Directives',
+      originalText: t.source?.text || t.description || t.title,
+      documentName: docName,
+    })
+  })
+
+  // Add care instruction citations
+  const careInstructions = plan.care_instructions || []
+  careInstructions.forEach((ins, idx) => {
+    citations.push({
+      id: `SRC-INS-${idx + 1}`,
+      category: 'instructions',
+      categoryLabel: 'Instructions',
+      item: ins.category || 'Care Directive',
+      page: ins.source_citation?.page || 1,
+      section: ins.category || 'Instructions',
+      originalText: ins.original_text || ins.source_citation?.raw_quote || '',
+      documentName: docName,
+    })
+  })
+
+  if (plan.warning_signs && plan.warning_signs.when_to_seek_immediate_care?.length > 0) {
+    citations.push({
+      id: 'SRC-WARN-1',
+      category: 'warning-signs',
+      categoryLabel: 'Warning Signs',
+      item: 'Emergency Red Flags',
+      page: plan.warning_signs.source_citation?.page || 1,
+      section: 'Warning Signs',
+      originalText: plan.warning_signs.when_to_seek_immediate_care.join('; '),
+      documentName: docName,
+    })
+  }
+
+  return citations
 }

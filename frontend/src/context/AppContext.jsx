@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { AppContext } from '@/context/appContext.js'
 
 /**
- * Lightweight global state for the demo:
- *  - mock user/profile shown in the top bar
- *  - demo route ids ('demo') so the sidebar links and deep links resolve
- *  - app language (static selector for now)
+ * Global application context:
+ *  - current session patient ID & patient Name (persisted to localStorage)
+ *  - current session document ID
+ *  - mock user / profile shown in the top bar
+ *  - language preference
  */
 export function AppProvider({ children }) {
   const [language, setLanguage] = useState('en')
@@ -15,33 +16,70 @@ export function AppProvider({ children }) {
     role: 'Provider',
     initials: 'DP',
   })
-  const [documentId, setDocumentId] = useState(() => {
+  const [documentId, setDocumentIdState] = useState(() => {
     try { return localStorage.getItem('aegis_last_doc_id') || 'demo' } catch { return 'demo' }
   })
-  const [patientId, setPatientId] = useState(() => {
-    try { return localStorage.getItem('aegis_last_patient_id') || 'demo' } catch { return 'demo' }
+  const [uploadedPatientId, setUploadedPatientIdState] = useState(() => {
+    try { return localStorage.getItem('aegis_uploaded_patient_id') || '' } catch { return '' }
   })
-  const [patientName, setPatientName] = useState(() => {
-    try { return localStorage.getItem('aegis_last_patient_name') || '' } catch { return '' }
+  const [uploadedPatientName, setUploadedPatientNameState] = useState(() => {
+    try { return localStorage.getItem('aegis_uploaded_patient_name') || '' } catch { return '' }
+  })
+  const [patientId, setPatientIdState] = useState(() => {
+    try {
+      const uploaded = localStorage.getItem('aegis_uploaded_patient_id')
+      if (uploaded) return uploaded
+      return localStorage.getItem('aegis_last_patient_id') || 'demo'
+    } catch { return 'demo' }
+  })
+  const [patientName, setPatientNameState] = useState(() => {
+    try {
+      const uploaded = localStorage.getItem('aegis_uploaded_patient_name')
+      if (uploaded) return uploaded
+      return localStorage.getItem('aegis_last_patient_name') || ''
+    } catch { return '' }
   })
 
-  const updatePatient = (newPatientId, newPatientName = '') => {
+  const updatePatient = useCallback((newPatientId, newPatientName = '', isUpload = false) => {
     if (newPatientId) {
-      setPatientId(newPatientId)
-      try { localStorage.setItem('aegis_last_patient_id', newPatientId) } catch {}
+      setPatientIdState((prev) => {
+        if (prev !== newPatientId) {
+          try { localStorage.setItem('aegis_last_patient_id', newPatientId) } catch {}
+          return newPatientId
+        }
+        return prev
+      })
+      if (isUpload || (newPatientId !== 'pat-syn-003' && newPatientId !== 'demo')) {
+        setUploadedPatientIdState(newPatientId)
+        try { localStorage.setItem('aegis_uploaded_patient_id', newPatientId) } catch {}
+      }
     }
     if (newPatientName) {
-      setPatientName(newPatientName)
-      try { localStorage.setItem('aegis_last_patient_name', newPatientName) } catch {}
+      setPatientNameState((prev) => {
+        if (prev !== newPatientName) {
+          try { localStorage.setItem('aegis_last_patient_name', newPatientName) } catch {}
+          return newPatientName
+        }
+        return prev
+      })
+      if (isUpload || (newPatientId !== 'pat-syn-003' && newPatientId !== 'demo')) {
+        setUploadedPatientNameState(newPatientName)
+        try { localStorage.setItem('aegis_uploaded_patient_name', newPatientName) } catch {}
+      }
     }
-  }
+  }, [])
 
-  const updateDocument = (newDocId) => {
+  const updateDocument = useCallback((newDocId) => {
     if (newDocId) {
-      setDocumentId(newDocId)
-      try { localStorage.setItem('aegis_last_doc_id', newDocId) } catch {}
+      setDocumentIdState((prev) => {
+        if (prev !== newDocId) {
+          try { localStorage.setItem('aegis_last_doc_id', newDocId) } catch {}
+          return newDocId
+        }
+        return prev
+      })
     }
-  }
+  }, [])
 
   const value = useMemo(
     () => ({
@@ -54,9 +92,11 @@ export function AppProvider({ children }) {
       setPatientId: (id) => updatePatient(id),
       patientName,
       setPatientName: (name) => updatePatient(patientId, name),
+      uploadedPatientId,
+      uploadedPatientName,
       updatePatient,
     }),
-    [language, user, documentId, patientId, patientName],
+    [language, user, documentId, patientId, patientName, uploadedPatientId, uploadedPatientName, updatePatient, updateDocument],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

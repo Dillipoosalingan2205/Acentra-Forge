@@ -20,7 +20,7 @@ export const DEFAULT_ACCOUNTS = [
     email: 'demo@acentra.health',
     passwordHash: 'Acentra@2026',
     emailVerified: true,
-    role: 'Provider',
+    role: 'Patient',
     initials: 'DP',
     createdAt: '2026-10-01T00:00:00.000Z',
     isDemo: true,
@@ -34,6 +34,17 @@ export const DEFAULT_ACCOUNTS = [
     role: 'Patient',
     initials: 'JD',
     createdAt: '2026-10-08T00:00:00.000Z',
+    isDemo: true,
+  },
+  {
+    id: 'USR-DOC-001',
+    name: 'Dr. Sarah Chen',
+    email: 'doctor@aegis.health',
+    passwordHash: 'Aegis@2026',
+    emailVerified: true,
+    role: 'Doctor',
+    initials: 'SC',
+    createdAt: '2026-10-01T00:00:00.000Z',
     isDemo: true,
   },
 ]
@@ -283,6 +294,21 @@ export const mockAuth = {
     ) {
       const patientAccount = DEFAULT_ACCOUNTS[1]
       const safeUser = sanitizeUser(patientAccount)
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(safeUser))
+      localStorage.setItem(STORAGE_KEYS.SESSION, `mock-token-${Date.now()}`)
+      return {
+        success: true,
+        user: safeUser,
+      }
+    }
+
+    // Direct fallback for doctor demo credentials
+    if (
+      trimmedEmail === 'doctor@aegis.health' &&
+      trimmedPassword === 'Aegis@2026'
+    ) {
+      const doctorAccount = DEFAULT_ACCOUNTS[2]
+      const safeUser = sanitizeUser(doctorAccount)
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(safeUser))
       localStorage.setItem(STORAGE_KEYS.SESSION, `mock-token-${Date.now()}`)
       return {

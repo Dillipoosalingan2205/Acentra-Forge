@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth.js'
  */
 export default function Navbar() {
   const navigate = useNavigate()
-  const { language } = useApp()
+  const { language, patientId, uploadedPatientId } = useApp()
   const { user: authUser, logout } = useAuth()
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -37,7 +37,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     setMenuOpen(false)
     await logout()
-    navigate('/login', { replace: true })
+    navigate('/role-select', { replace: true })
   }
 
   return (
@@ -159,7 +159,7 @@ export default function Navbar() {
                     Portal
                   </div>
                   <Link
-                    to="/dashboard/demo"
+                    to={`/dashboard/${uploadedPatientId || patientId || 'demo'}`}
                     onClick={() => setMenuOpen(false)}
                     className="block px-2 py-1.5 text-xs text-slate-300 rounded-lg hover:bg-white/5 hover:text-white transition-colors"
                   >

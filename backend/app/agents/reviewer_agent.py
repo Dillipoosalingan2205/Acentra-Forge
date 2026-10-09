@@ -47,10 +47,13 @@ class ReviewerAgent:
                     "reviewer_notes": ""
                 })
 
-        # Check tasks for missing dates or vague timing
+        # Check tasks for missing dates, vague timing, or guardrail flags
         for task in tasks:
             due = task.get("due_date", "")
             title = task.get("title", "")
+            st_lower = (task.get("source_text") or "").lower()
+            tt_lower = (task.get("title") or "").lower()
+
             if not due or due == "9999-99-99":
                 task["clarification_needed"] = True
                 task["status"] = "Needs Review"
@@ -66,9 +69,31 @@ class ReviewerAgent:
                     "resolution_status": "OPEN",
                     "reviewer_notes": ""
                 })
-            elif "as previously" in task.get("source_text", "").lower() or "as directed" in task.get("source_text", "").lower():
+            elif "as previously" in st_lower or "as directed" in st_lower or "previously directed" in st_lower:
                 task["clarification_needed"] = True
                 task["status"] = "Needs Review"
                 task["confidence_score"] = 0.82
+                review_cases.append({
+                    "patient_id": patient_id,
+                    "discharge_id": discharge_id,
+                    "reason": "Instruction refers to prior directive with missing explicit schedule",
+                    "original_instruction": task.get("source_text", title),
+                    "ai_interpretation": "Calibrated extraction confidence (82%). Ambiguous directive references prior instruction without explicit schedule; requires clinician verification.",
+                    "confidence_score": 0.82,
+                    "priority": "HIGH",
+                    "resolution_status": "OPEN",
+                    "reviewer_notes": ""
+                })
+            else:
+                # Check if any detected review case matches this specific task by distinctive words
+                COMMON_WORDS = {"tablet", "tablets", "capsule", "capsules", "instructions", "taking", "daily", "twice", "every", "before", "after", "mouth", "blood", "pressure", "prior", "admission", "morning", "evening", "patient"}
+                for rc in review_cases:
+                    orig_low = (rc.get("original_instruction") or "").lower()
+                    distinctive_words = [w for w in re.findall(r'[a-zA-Z]{5,}', orig_low) if w not in COMMON_WORDS]
+                    if any(w in st_lower or w in tt_lower for w in distinctive_words):
+                        task["clarification_needed"] = True
+                        task["status"] = "Needs Review"
+                        task["confidence_score"] = 0.82
+                        break
 
         return review_cases

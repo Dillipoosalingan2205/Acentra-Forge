@@ -101,7 +101,17 @@ async def get_patient_plan(
         )
 
     # Prepare care instructions (with on-the-fly language simplification)
-    raw_instructions = record.care_instructions or []
+    raw_instructions = list(record.care_instructions or [])
+    if not raw_instructions and tasks:
+        for idx, t in enumerate(tasks):
+            raw_instructions.append({
+                "id": f"inst-{idx + 1}",
+                "category": t.category or "Discharge Guidance",
+                "original_text": t.source_text or t.title,
+                "confidence": getattr(t, "confidence_score", None) or 0.88,
+                "source_citation": {"page": t.source_page or 1, "raw_quote": t.source_text or t.title}
+            })
+
     care_items = []
     for item in raw_instructions:
         cat = item.get("category", "Care")

@@ -5,6 +5,7 @@ import { Sparkles } from 'lucide-react'
 import { getInstructions } from '@/services/mockApi.js'
 import LoadingState from '@/components/common/LoadingState.jsx'
 import CarePlanNotFound from '@/components/common/CarePlanNotFound.jsx'
+import EmptyState from '@/components/common/EmptyState.jsx'
 import { InstructionCard } from '@/components/instructions/InstructionCard.jsx'
 
 export default function Instructions() {
@@ -44,7 +45,7 @@ export default function Instructions() {
     return <CarePlanNotFound section="instructions" />
   }
 
-  if (loading || !instructions.length) {
+  if (loading) {
     return (
       <div className="mx-auto max-w-5xl py-12">
         <LoadingState label="Loading discharge instructions…" />
@@ -73,11 +74,19 @@ export default function Instructions() {
       </header>
 
       {/* Instructions list */}
-      <div className="space-y-4">
-        {instructions.map((instruction) => (
-          <InstructionCard key={instruction.id} instruction={instruction} />
-        ))}
-      </div>
+      {!instructions.length ? (
+        <EmptyState
+          title="No explicit discharge care instructions found."
+          description="General guidance may be recorded under specific appointments or tasks."
+          icon={Sparkles}
+        />
+      ) : (
+        <div className="space-y-4">
+          {instructions.map((instruction) => (
+            <InstructionCard key={instruction.id} instruction={instruction} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

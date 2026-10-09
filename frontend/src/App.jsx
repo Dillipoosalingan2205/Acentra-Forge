@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute.jsx'
 import AppShell from '@/components/layout/AppShell.jsx'
+import { useApp } from '@/context/appContext.js'
 import Dashboard from '@/pages/Dashboard.jsx'
 import ForgotPassword from '@/pages/ForgotPassword.jsx'
 import Home from '@/pages/Home.jsx'
@@ -15,6 +16,7 @@ import Providers from '@/pages/Providers.jsx'
 import ResetPassword from '@/pages/ResetPassword.jsx'
 import ReviewCase from '@/pages/ReviewCase.jsx'
 import ReviewQueue from '@/pages/ReviewQueue.jsx'
+import RoleSelect from '@/pages/RoleSelect.jsx'
 import Signup from '@/pages/Signup.jsx'
 import Sources from '@/pages/Sources.jsx'
 import Tasks from '@/pages/Tasks.jsx'
@@ -31,6 +33,12 @@ function ScrollToTop() {
   return null
 }
 
+function PatientRedirect({ toPrefix }) {
+  const { uploadedPatientId, patientId } = useApp()
+  const targetId = uploadedPatientId || patientId || 'demo'
+  return <Navigate to={`${toPrefix}/${targetId}`} replace />
+}
+
 export default function App() {
   return (
     <>
@@ -39,14 +47,18 @@ export default function App() {
         {/* Public marketing landing page */}
         <Route path="/" element={<Home />} />
 
-        {/* Public authentication flows */}
-        <Route path="/login" element={<Login />} />
+        {/* Role selection portal */}
+        <Route path="/role-select" element={<RoleSelect />} />
+
+        {/* Public authentication flows — role-parameterized login */}
+        <Route path="/login" element={<Navigate to="/role-select" replace />} />
+        <Route path="/login/:role" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-email" element={<Navigate to="/dashboard/demo" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* All internal application routes require authentication and render inside AppShell */}
+        {/* Patient routes — all internal application routes inside AppShell */}
         <Route
           element={
             <ProtectedRoute>
@@ -65,21 +77,22 @@ export default function App() {
           <Route path="/sources/:id" element={<Sources />} />
           <Route path="/providers" element={<Providers />} />
           <Route path="/providers/:id" element={<Providers />} />
+          {/* Human Review — accessible by both Doctors and Patients in the shell, but Doctor-gated at component level */}
           <Route path="/reviews" element={<ReviewQueue />} />
           <Route path="/reviews/:id" element={<ReviewCase />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        {/* Root aliases */}
-        <Route path="/dashboard" element={<Navigate to="/dashboard/demo" replace />} />
-        <Route path="/timeline" element={<Navigate to="/timeline/demo" replace />} />
-        <Route path="/tasks" element={<Navigate to="/tasks/demo" replace />} />
-        <Route path="/instructions" element={<Navigate to="/instructions/demo" replace />} />
-        <Route path="/medications" element={<Navigate to="/medications/demo" replace />} />
-        <Route path="/warning-signs" element={<Navigate to="/warning-signs/demo" replace />} />
-        <Route path="/sources" element={<Navigate to="/sources/demo" replace />} />
-        <Route path="/providers" element={<Navigate to="/providers/demo" replace />} />
-        <Route path="/processing" element={<Navigate to="/processing/demo" replace />} />
+        {/* Root aliases dynamically routed to active session patient */}
+        <Route path="/dashboard" element={<PatientRedirect toPrefix="/dashboard" />} />
+        <Route path="/timeline" element={<PatientRedirect toPrefix="/timeline" />} />
+        <Route path="/tasks" element={<PatientRedirect toPrefix="/tasks" />} />
+        <Route path="/instructions" element={<PatientRedirect toPrefix="/instructions" />} />
+        <Route path="/medications" element={<PatientRedirect toPrefix="/medications" />} />
+        <Route path="/warning-signs" element={<PatientRedirect toPrefix="/warning-signs" />} />
+        <Route path="/sources" element={<PatientRedirect toPrefix="/sources" />} />
+        <Route path="/providers" element={<PatientRedirect toPrefix="/providers" />} />
+        <Route path="/processing" element={<Navigate to="/upload" replace />} />
       </Routes>
     </>
   )

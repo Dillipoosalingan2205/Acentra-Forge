@@ -29,7 +29,7 @@ export default function Processing() {
 
   useEffect(() => {
     if (document?.patientId || document?.patientName) {
-      updatePatient(document.patientId, document.patientName)
+      updatePatient(document.patientId, document.patientName, true)
     }
   }, [document, updatePatient])
 

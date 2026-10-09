@@ -46,7 +46,7 @@ export default function Upload() {
       const patId = res?.patientId || 'demo'
       const patName = res?.patientName || ''
       if (setDocumentId) setDocumentId(docId)
-      if (updatePatient) updatePatient(patId, patName)
+      if (updatePatient) updatePatient(patId, patName, true)
       navigate(`/processing/${docId}`)
     } catch {
       setSubmitting(false)

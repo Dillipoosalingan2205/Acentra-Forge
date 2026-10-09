@@ -310,14 +310,20 @@ export const getProviders = async (id) => {
 /* Human Review & Task Status                                         */
 /* ------------------------------------------------------------------ */
 
-export const getReviews = async (priority = 'All') => {
+export const getReviews = async (priority = 'All', patientId = null) => {
   try {
-    const live = await realApi.getReviews(priority)
+    const live = await realApi.getReviews(priority, patientId)
     if (live && live.length > 0) return live
+    if (patientId && patientId !== 'All' && patientId.toLowerCase() !== 'demo') {
+      return mockReviews.filter((r) => r.patientId === patientId)
+    }
     return mockReviews
   } catch (err) {
     console.warn('[API fallback] getReviews falling back to mock:', err.message)
     await delay(200)
+    if (patientId && patientId !== 'All' && patientId.toLowerCase() !== 'demo') {
+      return mockReviews.filter((r) => r.patientId === patientId)
+    }
     return mockReviews
   }
 }
@@ -338,20 +344,74 @@ export const getReview = async (reviewId) => {
 
 export const updateTaskStatus = async (taskId, status) => {
   try {
-    return await realApi.updateTaskStatus(taskId, status)
+    const res = await realApi.updateTaskStatus(taskId, status)
+    const mTask = mockActionItems.find((t) => t.id === taskId)
+    if (mTask) {
+      mTask.status = status.toLowerCase()
+    }
+    return res
   } catch (err) {
     console.warn('[API fallback] updateTaskStatus falling back to local mock:', err.message)
     await delay(150)
+    const mTask = mockActionItems.find((t) => t.id === taskId)
+    if (mTask) {
+      mTask.status = status.toLowerCase()
+    }
     return { taskId, status, success: true }
   }
 }
 
 export const resolveReviewCase = async (reviewId, action, reviewerNotes = '', resolvedValues = null) => {
+  let result = null
   try {
-    return await realApi.resolveReview(reviewId, action, reviewerNotes, resolvedValues)
+    result = await realApi.resolveReview(reviewId, action, reviewerNotes, resolvedValues)
   } catch (err) {
     console.warn('[API fallback] resolveReviewCase falling back:', err.message)
     await delay(200)
-    return { case_id: reviewId, resolution_status: 'RESOLVED', reviewer_notes: reviewerNotes }
+    result = { case_id: reviewId, resolution_status: 'RESOLVED', reviewer_notes: reviewerNotes }
   }
+
+  // Update in-memory mock data so mock fallback also reflects the resolution
+  let affectedPatientId = null
+  try {
+    const rev = mockReviews.find((r) => r.id === reviewId)
+    if (rev) {
+      affectedPatientId = rev.patientId
+      rev.status = action === 'REJECT' ? 'rejected' : 'resolved'
+      rev.reviewerNotes = reviewerNotes
+    }
+    const taskNeedsRev = mockActionItems.find((t) => t.status === 'needs-review' || t.reviewRequired)
+    if (taskNeedsRev && ['APPROVE', 'OVERRIDE'].includes(action.toUpperCase())) {
+      taskNeedsRev.status = 'pending'
+      taskNeedsRev.reviewRequired = false
+      taskNeedsRev.clarificationNeeded = false
+      taskNeedsRev.confidence = 0.90
+      if (resolvedValues?.dueDate) {
+        taskNeedsRev.date = resolvedValues.dueDate
+      }
+      if (resolvedValues?.overrideInstruction) {
+        taskNeedsRev.title = resolvedValues.overrideInstruction
+      }
+    }
+  } catch (e) {
+    // Ignore any mock state sync failure
+  }
+
+  // Broadcast event across all components and pages
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('aegis:review-resolved', {
+        detail: {
+          reviewId,
+          patientId: affectedPatientId || result?.patient_id,
+          action,
+          reviewerNotes,
+          resolvedValues,
+          updatedTaskId: result?.updated_task_id,
+        },
+      }),
+    )
+  }
+
+  return result
 }

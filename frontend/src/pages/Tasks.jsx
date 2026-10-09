@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Filter, ListChecks } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 
@@ -21,11 +21,17 @@ const CATEGORY_OPTIONS = [
 
 export default function Tasks() {
   const { id } = useParams()
-  const { tasks, loading } = useTaskContext()
+  const { tasks, loading, refreshTasks } = useTaskContext()
   const guard = useCarePlanGuard(id)
 
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+
+  useEffect(() => {
+    if (id) {
+      refreshTasks(id)
+    }
+  }, [id, refreshTasks])
 
   // Filter tasks based on both status and category
   const filteredTasks = tasks.filter((task) => {

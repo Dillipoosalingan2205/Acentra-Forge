@@ -235,7 +235,7 @@ export default function Home() {
           {/* Top Right: Sign In Pill / Dashboard Link & Mobile Burger */}
           <div className="flex-1 flex items-center justify-end gap-3">
             <Link
-              to={isAuthenticated ? '/dashboard/demo' : '/login'}
+              to={isAuthenticated ? '/dashboard/demo' : '/role-select'}
               className="hidden md:inline-flex items-center justify-center rounded-full shrink-0 font-medium transition-all duration-200 hover:bg-[#323234] hover:text-white hover:-translate-y-0.5"
               style={{
                 background: 'var(--pill-dark)',
@@ -690,7 +690,7 @@ export default function Home() {
             })}
 
             <Link
-              to={isAuthenticated ? '/dashboard/demo' : '/login'}
+              to={isAuthenticated ? '/dashboard/demo' : '/role-select'}
               onClick={() => setMobileMenuOpen(false)}
               className="w-full mt-2 h-11 rounded-full flex items-center justify-center text-sm font-medium transition-colors"
               style={{

@@ -10,27 +10,27 @@ class ExtractorAgent:
 
     HEADER_PATTERNS = [
         ("appointments", re.compile(
-            r"^(?:follow[-\s]?up\s*(?:appointments?|visits?|tests?)?(?:\s*(?:&|and)\s*tests?)?|appointments?|clinic\s+visits?|scheduled\s+follow[-\s]?up|outpatient\s+reviews?|follow[-\s]?up)\b[:\s\-]*$",
+            r"^(?:(?:scheduled\s+)?follow[-\s]?up(?:\s*(?:appointments?|visits?|tests?)|\s*(?:&|and)\s*tests?)*|appointments?(?:\s*(?:&|and)\s*tests?)?|clinic\s+visits?|outpatient\s+reviews?)\b.*$",
             re.IGNORECASE
         )),
         ("tests", re.compile(
-            r"^(?:tests?\s*(?:/|&|and)\s*investigations?|investigations?|laboratory(?:\s+tests?|\s+workup)?|tests?|diagnostic\s+workup|lab\s+work|diagnostic\s+tests?|imaging|radiology|blood\s+tests?)\b[:\s\-]*$",
+            r"^(?:tests?\s*(?:/|&|and)\s*investigations?|investigations?|laboratory(?:\s+tests?|\s+workup)?|tests?|diagnostic\s+workup|lab\s+work|diagnostic\s+tests?|imaging|radiology|blood\s+tests?)\b.*$",
             re.IGNORECASE
         )),
         ("referrals", re.compile(
-            r"^(?:referrals?|specialist\s+referrals?|allied\s+health\s+referrals?|consultations?)\b[:\s\-]*$",
+            r"^(?:referrals?|specialist\s+referrals?|allied\s+health\s+referrals?|consultations?)\b.*$",
             re.IGNORECASE
         )),
         ("medications", re.compile(
-            r"^(?:medication\s+instructions?|discharge\s+medications?|medications?|cardiac\s+pharmacotherapy|prescriptions?|medication\s+orders?|current\s+medications?)\b[:\s\-]*$",
+            r"^(?:discharge\s+medications?(?:\s*(?:&|and)\s*dosing\s*schedule)?|medication\s+instructions?|medications?(?:\s*(?:&|and)\s*dosing\s*schedule)?|cardiac\s+pharmacotherapy|prescriptions?|medication\s+orders?|current\s+medications?)\b.*$",
             re.IGNORECASE
         )),
         ("care", re.compile(
-            r"^(?:(?:surgical\s+wound\s*(?:&|and)\s*)?rehabilitation\s+care|care\s+instructions?|care\s+protocols?|discharge\s+instructions?|post[-\s]?discharge\s+care(?:\s+instructions?)?|post[-\s]?operative(?:\s+care)?|wound(?:\s+and\s+dressing)?\s+care|activity(?:\s+&\s+diet)?|monitoring|self[-\s]?care|rehabilitation)\b[:\s\-]*$",
+            r"^(?:care(?:\s*(?:&|and)\s*monitoring)?(?:\s*protocols?|\s*instructions?)?|(?:surgical\s+wound\s*(?:&|and)\s*)?rehabilitation\s+care|discharge\s+instructions?|post[-\s]?discharge\s+care|post[-\s]?operative(?:\s+care)?|wound(?:\s+and\s+dressing)?\s+care|(?:dietary|diet)(?:\s*(?:&|and)\s*activity)?(?:\s*restrictions?)?|activity(?:\s*(?:&|and)\s*diet)?(?:\s*restrictions?)?|monitoring(?:\s+protocols?)?|self[-\s]?care)\b.*$",
             re.IGNORECASE
         )),
         ("warnings", re.compile(
-            r"^(?:warning\s+signs(?:\s*[-–:]\s*when\s+to\s+seek\s+.*)?|when\s+to\s+seek\s+(?:immediate\s+)?(?:medical\s+attention|care)|emergency\s+red\s+flags|red\s+flags|when\s+to\s+call\s+doctor)\b[:\s\-]*$",
+            r"^(?:warning\s+signs(?:\s*[-–:]\s*.*)?|when\s+to\s+seek\s+.*|emergency\s+red\s+flags|red\s+flags|when\s+to\s+call\s+doctor)\b.*$",
             re.IGNORECASE
         )),
     ]

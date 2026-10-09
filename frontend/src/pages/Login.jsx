@@ -1,18 +1,30 @@
 import { useState } from 'react'
-import { AlertCircle, CheckCircle2, Eye, EyeOff, Sparkles } from 'lucide-react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Heart, Sparkles, Stethoscope } from 'lucide-react'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import AuthLayout from '@/components/auth/AuthLayout.jsx'
 import { useAuth } from '@/hooks/useAuth.js'
 import { validateEmail } from '@/services/mockAuth.js'
 
+/**
+ * Role-aware login page.
+ * Receives the role ("patient" or "doctor") from URL params.
+ */
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, isAuthenticated } = useAuth()
+  const { role: urlRole } = useParams()
+  const { login, isAuthenticated, user } = useAuth()
+
+  // Determine the active role from URL param or location state
+  const activeRole = urlRole || location.state?.role || 'patient'
+  const isDoctor = activeRole === 'doctor'
 
   const successNotice = location.state?.message || ''
-  const redirectTarget = location.state?.from?.pathname || '/dashboard/demo'
+
+  // Role-aware redirect targets
+  const defaultRedirect = isDoctor ? '/reviews' : '/dashboard/demo'
+  const redirectTarget = location.state?.from?.pathname || defaultRedirect
 
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -21,6 +33,10 @@ export default function Login() {
   const [formError, setFormError] = useState('')
 
   if (isAuthenticated) {
+    // Redirect based on logged-in user's role
+    if (user?.role === 'Doctor') {
+      return <Navigate to="/reviews" replace />
+    }
     return <Navigate to={redirectTarget} replace />
   }
 
@@ -45,8 +61,23 @@ export default function Login() {
     try {
       setIsSubmitting(true)
       setFormError('')
-      await login(formData.email, formData.password)
-      navigate(redirectTarget, { replace: true })
+      const result = await login(formData.email, formData.password)
+
+      // Validate role match
+      const loggedInRole = result?.user?.role || 'Patient'
+      if (isDoctor && loggedInRole !== 'Doctor') {
+        setFormError('This account is not registered as a Doctor. Please use the Patient portal.')
+        setIsSubmitting(false)
+        return
+      }
+      if (!isDoctor && loggedInRole === 'Doctor') {
+        setFormError('This account is a Doctor account. Please use the Doctor portal.')
+        setIsSubmitting(false)
+        return
+      }
+
+      const dest = loggedInRole === 'Doctor' ? '/reviews' : redirectTarget
+      navigate(dest, { replace: true })
     } catch (err) {
       setFormError(err.message || 'Email or password is incorrect.')
     } finally {
@@ -55,17 +86,63 @@ export default function Login() {
   }
 
   const fillDemoCredentials = () => {
-    setFormData({ email: 'demo@acentra.health', password: 'Acentra@2026' })
+    if (isDoctor) {
+      setFormData({ email: 'doctor@aegis.health', password: 'Aegis@2026' })
+    } else {
+      setFormData({ email: 'demo@acentra.health', password: 'Acentra@2026' })
+    }
     setFormError('')
     setTouched({})
   }
 
+  const roleConfig = isDoctor
+    ? {
+        title: 'Doctor Sign In',
+        subtitle: 'Access the clinical review portal to manage AI-flagged care directives.',
+        icon: Stethoscope,
+        accentColor: '#10b981',
+        demoEmail: 'doctor@aegis.health',
+        demoPassword: 'Aegis@2026',
+        switchLabel: 'Not a doctor?',
+        switchLink: '/login/patient',
+        switchText: 'Switch to Patient Portal',
+      }
+    : {
+        title: 'Welcome back',
+        subtitle: 'Sign in to continue managing your discharge follow-up plan.',
+        icon: Heart,
+        accentColor: '#6366f1',
+        demoEmail: 'demo@acentra.health',
+        demoPassword: 'Acentra@2026',
+        switchLabel: 'Are you a doctor?',
+        switchLink: '/login/doctor',
+        switchText: 'Switch to Doctor Portal',
+      }
+
+  const RoleIcon = roleConfig.icon
+
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to continue managing your discharge follow-up plan."
+      title={roleConfig.title}
+      subtitle={roleConfig.subtitle}
+      role={activeRole}
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {/* Role badge */}
+        <div className="flex items-center justify-center mb-1">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest"
+            style={{
+              color: roleConfig.accentColor,
+              background: `${roleConfig.accentColor}12`,
+              border: `1px solid ${roleConfig.accentColor}30`,
+            }}
+          >
+            <RoleIcon className="h-3.5 w-3.5" />
+            {isDoctor ? 'Doctor Portal' : 'Patient Portal'}
+          </div>
+        </div>
+
         {successNotice && (
           <div
             className="flex items-start gap-2.5 rounded-xl p-3 text-xs text-emerald-300"
@@ -99,7 +176,7 @@ export default function Login() {
             type="email"
             required
             autoComplete="email"
-            placeholder="demo@acentra.health"
+            placeholder={roleConfig.demoEmail}
             value={formData.email}
             onChange={handleChange}
             onBlur={() => handleBlur('email')}
@@ -161,7 +238,7 @@ export default function Login() {
             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-zinc-300 bg-[#28282a] border border-white/10 hover:bg-[#323234] hover:text-white transition-colors cursor-pointer"
           >
             <Sparkles className="h-3.5 w-3.5 text-white" />
-            Autofill demo credentials
+            Autofill {isDoctor ? 'doctor' : 'demo'} credentials
           </button>
         </div>
 
@@ -181,13 +258,27 @@ export default function Login() {
           )}
         </button>
 
-        {/* Sign up link */}
-        <div className="pt-1 text-center text-xs text-zinc-500">
-          Don&apos;t have an account?{' '}
-          <Link to="/signup" className="font-semibold text-white hover:underline transition-colors">
-            Create an account
+        {/* Portal switch */}
+        <div className="pt-2 text-center">
+          <p className="text-xs text-zinc-500 mb-1">{roleConfig.switchLabel}</p>
+          <Link
+            to={roleConfig.switchLink}
+            className="text-xs font-semibold transition-colors hover:underline"
+            style={{ color: isDoctor ? '#6366f1' : '#10b981' }}
+          >
+            {roleConfig.switchText}
           </Link>
         </div>
+
+        {/* Sign up link — patients only */}
+        {!isDoctor && (
+          <div className="pt-1 text-center text-xs text-zinc-500">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="font-semibold text-white hover:underline transition-colors">
+              Create an account
+            </Link>
+          </div>
+        )}
       </form>
     </AuthLayout>
   )

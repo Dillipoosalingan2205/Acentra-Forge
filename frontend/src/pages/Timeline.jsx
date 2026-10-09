@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarClock, CheckCircle2, ChevronDown, FileText } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -13,9 +13,15 @@ import { formatDate } from '@/utils/format.js'
 
 export default function Timeline() {
   const { id } = useParams()
-  const { tasks, loading, updateTaskStatus } = useTaskContext()
+  const { tasks, loading, updateTaskStatus, refreshTasks } = useTaskContext()
   const guard = useCarePlanGuard(id)
   const [expandedTaskId, setExpandedTaskId] = useState(null)
+
+  useEffect(() => {
+    if (id) {
+      refreshTasks(id)
+    }
+  }, [id, refreshTasks])
 
   // Sort tasks chronologically by date
   const sortedTasks = [...tasks].sort((a, b) => new Date(a.date) - new Date(b.date))

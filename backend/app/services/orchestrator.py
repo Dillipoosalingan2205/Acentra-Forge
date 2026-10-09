@@ -112,10 +112,24 @@ class OrchestratorService:
             saved_tasks.append(task_record)
 
         for rc in review_cases:
+            matched_task = None
+            rc_orig = (rc.get("original_instruction") or "").lower()
+            for st in saved_tasks:
+                if st.clarification_needed or st.status == "Needs Review":
+                    if not rc_orig or rc_orig in (st.source_text or "").lower() or (st.source_text or "").lower() in rc_orig or rc_orig in (st.title or "").lower():
+                        matched_task = st
+                        break
+            if not matched_task:
+                for st in saved_tasks:
+                    if st.clarification_needed or st.status == "Needs Review":
+                        matched_task = st
+                        break
+
             db_case = ReviewCase(
                 case_id=str(uuid.uuid4()),
                 patient_id=patient_id,
                 discharge_id=discharge_id,
+                task_id=matched_task.id if matched_task else None,
                 reason=rc["reason"],
                 original_instruction=rc["original_instruction"],
                 ai_interpretation=rc["ai_interpretation"],

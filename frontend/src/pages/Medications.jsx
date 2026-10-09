@@ -5,6 +5,7 @@ import { AlertCircle, Pill } from 'lucide-react'
 import { getMedications } from '@/services/mockApi.js'
 import LoadingState from '@/components/common/LoadingState.jsx'
 import CarePlanNotFound from '@/components/common/CarePlanNotFound.jsx'
+import EmptyState from '@/components/common/EmptyState.jsx'
 import { InstructionCard } from '@/components/instructions/InstructionCard.jsx'
 
 export default function Medications() {
@@ -44,7 +45,7 @@ export default function Medications() {
     return <CarePlanNotFound section="medications" />
   }
 
-  if (loading || !medications.length) {
+  if (loading) {
     return (
       <div className="mx-auto max-w-5xl py-12">
         <LoadingState label="Loading medication instructions…" />
@@ -83,11 +84,19 @@ export default function Medications() {
       </div>
 
       {/* Medication Instruction Cards */}
-      <div className="space-y-4">
-        {medications.map((med) => (
-          <InstructionCard key={med.id} instruction={med} />
-        ))}
-      </div>
+      {!medications.length ? (
+        <EmptyState
+          title="No explicit medication directives extracted."
+          description="Medication changes or instructions were not identified in this discharge record."
+          icon={Pill}
+        />
+      ) : (
+        <div className="space-y-4">
+          {medications.map((med) => (
+            <InstructionCard key={med.id} instruction={med} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
-  ClipboardCheck,
-  ShieldAlert,
   AlertTriangle,
   ArrowRight,
   CheckCircle,
-  FileText,
+  ClipboardCheck,
   Clock,
+  ShieldAlert,
   Sparkles,
+  User,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -15,16 +15,20 @@ import Badge from '@/components/common/Badge.jsx'
 import Card from '@/components/common/Card.jsx'
 import EmptyState from '@/components/common/EmptyState.jsx'
 import LoadingState from '@/components/common/LoadingState.jsx'
+import { useApp } from '@/context/appContext.js'
 import { getReviews, resolveReviewCase } from '@/services/mockApi.js'
+import { cn } from '@/utils/classNames.js'
 
 /**
  * Review Queue — Displays items routed for human clinical judgment.
  */
 export default function ReviewQueue() {
+  const { patientId: activePatientId, patientName: activePatientName } = useApp()
   const [reviews, setReviews] = useState(null)
   const [failed, setFailed] = useState(false)
   const [resolvedIds, setResolvedIds] = useState(new Set())
   const [resolvingId, setResolvingId] = useState(null)
+  const [filterMode, setFilterMode] = useState('all') // 'all' | 'active'
 
   const loadReviews = () => {
     getReviews()
@@ -36,7 +40,7 @@ export default function ReviewQueue() {
     loadReviews()
   }, [])
 
-  const handleQuickApprove = async (caseId) => {
+  const handleQuickApprove = async (caseId, patientId) => {
     setResolvingId(caseId)
     try {
       await resolveReviewCase(caseId, 'APPROVE', 'Verified by reviewing clinician in triage queue.')
@@ -47,6 +51,17 @@ export default function ReviewQueue() {
       setResolvingId(null)
     }
   }
+
+  const activePatientCases = (reviews || []).filter(
+    (r) => r.patientId === activePatientId,
+  )
+
+  const displayedReviews = (reviews || []).filter((r) => {
+    if (filterMode === 'active' && activePatientId) {
+      return r.patientId === activePatientId
+    }
+    return true
+  })
 
   return (
     <div className="mx-auto max-w-5xl py-4 sm:py-6 space-y-6 animate-fade-in">
@@ -64,6 +79,37 @@ export default function ReviewQueue() {
           <p className="mt-1 text-sm text-zinc-400">
             Items the AI coordinator could not confidently interpret, routed safely for human clinical judgment.
           </p>
+
+          {/* Filter options if active uploaded patient is present */}
+          {activePatientId && activePatientCases.length > 0 && (
+            <div className="flex items-center gap-2 pt-3">
+              <button
+                type="button"
+                onClick={() => setFilterMode('all')}
+                className={cn(
+                  'rounded-full px-3.5 py-1 text-xs font-medium transition-all cursor-pointer',
+                  filterMode === 'all'
+                    ? 'bg-white text-black font-semibold'
+                    : 'bg-white/5 text-zinc-400 hover:text-white',
+                )}
+              >
+                All Patients ({reviews?.length || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('active')}
+                className={cn(
+                  'rounded-full px-3.5 py-1 text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5',
+                  filterMode === 'active'
+                    ? 'bg-amber-400 text-black font-bold'
+                    : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20',
+                )}
+              >
+                <User className="h-3 w-3" />
+                <span>Current: {activePatientName || 'Active Patient'} ({activePatientCases.length})</span>
+              </button>
+            </div>
+          )}
         </div>
         {reviews && (
           <Badge status="review">{`${reviews.filter((r) => !resolvedIds.has(r.id)).length} item${reviews.filter((r) => !resolvedIds.has(r.id)).length === 1 ? '' : 's'} waiting`}</Badge>
@@ -93,20 +139,32 @@ export default function ReviewQueue() {
         <div className="py-12">
           <LoadingState label="Loading review cases from coordination engine…" />
         </div>
-      ) : reviews.length === 0 ? (
+      ) : displayedReviews.length === 0 ? (
         <Card className="p-8 text-center">
           <CheckCircle className="mx-auto h-12 w-12 text-emerald-400 mb-3" />
           <h3 className="text-base font-bold text-white mb-1">Queue Clear</h3>
           <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-            All extracted discharge instructions have been validated with high confidence. No items currently require human triage.
+            {filterMode === 'active'
+              ? `No open review cases for ${activePatientName || 'the current patient'}.`
+              : 'All extracted discharge instructions have been validated with high confidence. No items currently require human triage.'}
           </p>
+          {filterMode === 'active' && reviews.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilterMode('all')}
+              className="mt-3 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-4 cursor-pointer"
+            >
+              View all triage cases ({reviews.length})
+            </button>
+          )}
         </Card>
       ) : (
         <div className="space-y-4">
-          {reviews.map((item) => {
+          {displayedReviews.map((item) => {
             const isResolved = resolvedIds.has(item.id)
             const isWorking = resolvingId === item.id
             const isHighPriority = item.priority === 'high' || item.priority === 'HIGH'
+            const isCurrentPatient = item.patientId === activePatientId
 
             return (
               <Card
@@ -134,6 +192,23 @@ export default function ReviewQueue() {
                       >
                         {item.priority || 'MEDIUM'} PRIORITY
                       </span>
+
+                      {/* Explicit Patient Attribution Badge */}
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 text-[10px] font-semibold border flex items-center gap-1',
+                          isCurrentPatient
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            : 'bg-white/5 text-zinc-300 border-white/10',
+                        )}
+                      >
+                        <User className="h-2.5 w-2.5 text-zinc-400" />
+                        <span>{item.patientName || 'Patient'}</span>
+                        {isCurrentPatient && (
+                          <span className="text-[9px] text-emerald-400 font-bold uppercase ml-0.5">· Current</span>
+                        )}
+                      </span>
+
                       <span className="text-xs font-mono text-zinc-500">Case #{item.id?.slice(0, 8)}</span>
                       {isResolved && (
                         <span className="flex items-center gap-1 text-xs font-bold text-emerald-400">
@@ -182,11 +257,21 @@ export default function ReviewQueue() {
                       <button
                         type="button"
                         disabled={isWorking}
-                        onClick={() => handleQuickApprove(item.id)}
+                        onClick={() => handleQuickApprove(item.id, item.patientId)}
                         className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isWorking ? 'Resolving...' : 'Quick Approve'}
                       </button>
+                    )}
+
+                    {isResolved && (
+                      <Link
+                        to={`/dashboard/${activePatientId || item.patientId}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 pt-1"
+                      >
+                        <span>Return to Care Plan</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
                     )}
                   </div>
                 </div>

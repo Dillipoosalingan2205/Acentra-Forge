@@ -5,6 +5,7 @@ from datetime import datetime
 class ReviewCaseItem(BaseModel):
     case_id: str
     patient_id: str
+    patient_name: Optional[str] = None
     reason: str
     original_instruction: str
     ai_interpretation: str

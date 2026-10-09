@@ -5,6 +5,7 @@ import { FileText, CheckCircle2, ShieldCheck, Filter, Bookmark } from 'lucide-re
 import { getSources, getPatient } from '@/services/mockApi.js'
 import LoadingState from '@/components/common/LoadingState.jsx'
 import CarePlanNotFound from '@/components/common/CarePlanNotFound.jsx'
+import EmptyState from '@/components/common/EmptyState.jsx'
 import { cn } from '@/utils/classNames'
 
 export default function Sources() {
@@ -21,7 +22,7 @@ export default function Sources() {
     Promise.all([getSources(id), getPatient(id)])
       .then(([sourceData, patientData]) => {
         if (active) {
-          setSources(sourceData)
+          setSources(sourceData || [])
           setPatient(patientData)
           setLoading(false)
         }
@@ -42,7 +43,7 @@ export default function Sources() {
     return <CarePlanNotFound section="sources" />
   }
 
-  if (loading || !sources.length) {
+  if (loading) {
     return (
       <div className="mx-auto max-w-5xl py-12">
         <LoadingState label="Loading document source citations…" />
@@ -50,7 +51,9 @@ export default function Sources() {
     )
   }
 
-  const documentName = patient?.documentName || 'John_Doe_Discharge.pdf'
+  const documentName =
+    patient?.documentName ||
+    (patient?.name ? `${patient.name.replace(/\s+/g, '_')}_Discharge.pdf` : 'Discharge_Summary.pdf')
 
   const categories = [
     { id: 'all', label: 'All Sources' },
@@ -145,38 +148,46 @@ export default function Sources() {
       </div>
 
       {/* Source Citation List */}
-      <div className="space-y-3 sm:space-y-4">
-        {filteredSources.map((source) => (
-          <div
-            key={source.id}
-            className="rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-xs transition-all duration-200 hover:border-white/20"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3 mb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="font-semibold text-sm sm:text-base text-white">{source.item}</span>
-                <span className="rounded-full bg-[#28282a] border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-zinc-300 capitalize">
-                  {source.categoryLabel || source.category}
-                </span>
+      {!filteredSources.length ? (
+        <EmptyState
+          title="No source citations found."
+          description="Source citations for this category are not available in the current document."
+          icon={FileText}
+        />
+      ) : (
+        <div className="space-y-3 sm:space-y-4">
+          {filteredSources.map((source) => (
+            <div
+              key={source.id}
+              className="rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-xs transition-all duration-200 hover:border-white/20"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-semibold text-sm sm:text-base text-white">{source.item}</span>
+                  <span className="rounded-full bg-[#28282a] border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-zinc-300 capitalize">
+                    {source.categoryLabel || source.category}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium">
+                  <FileText className="h-3.5 w-3.5 text-zinc-400" aria-hidden="true" />
+                  <span>
+                    {source.documentName || documentName} · Page {source.page}
+                    {source.section ? ` (${source.section})` : ''}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium">
-                <FileText className="h-3.5 w-3.5 text-zinc-400" aria-hidden="true" />
-                <span>
-                  {source.documentName || documentName} · Page {source.page}
-                  {source.section ? ` (${source.section})` : ''}
-                </span>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                Exact Excerpt in Source:
+              </div>
+              <div className="rounded-xl bg-black border border-white/10 p-3 text-xs sm:text-sm font-mono text-zinc-200 break-words leading-relaxed">
+                &ldquo;{source.originalText}&rdquo;
               </div>
             </div>
-
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-              Exact Excerpt in Source:
-            </div>
-            <div className="rounded-xl bg-black border border-white/10 p-3 text-xs sm:text-sm font-mono text-zinc-200 break-words leading-relaxed">
-              &ldquo;{source.originalText}&rdquo;
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

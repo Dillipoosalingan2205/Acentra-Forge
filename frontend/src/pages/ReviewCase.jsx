@@ -15,11 +15,13 @@ import {
 import Card from '@/components/common/Card.jsx'
 import CarePlanNotFound from '@/components/common/CarePlanNotFound.jsx'
 import LoadingState from '@/components/common/LoadingState.jsx'
+import { useApp } from '@/context/appContext.js'
 import { getReview, resolveReviewCase } from '@/services/mockApi.js'
 
 export default function ReviewCase() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { patientId: sessionPatientId, patientName: sessionPatientName } = useApp()
 
   const [review, setReview] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -106,15 +108,18 @@ export default function ReviewCase() {
       {/* Header */}
       <header className="border-b border-white/[0.08] pb-5 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span
               className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300"
               style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}
             >
               Case #{review.id?.slice(0, 8)}
             </span>
+            <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold bg-white/10 text-white border border-white/15">
+              Patient: {review.patientName || review.patientId}
+            </span>
             <span className="text-xs text-slate-500 font-mono">
-              Patient: {review.patientId}
+              ID: {review.patientId}
             </span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
@@ -133,18 +138,35 @@ export default function ReviewCase() {
           <p className="text-sm text-zinc-400 max-w-md mx-auto">
             The patient care plan has been updated with your clinical confirmation. The quarantined action item has been unblocked.
           </p>
-          <div className="pt-2 flex justify-center gap-3">
+          <div className="pt-2 flex flex-wrap justify-center gap-3">
+            {sessionPatientId && sessionPatientId !== review.patientId ? (
+              <>
+                <Link
+                  to={`/dashboard/${sessionPatientId}`}
+                  className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_20px_rgba(255,255,255,0.3)] hover:bg-[#e4e4e6] transition-all cursor-pointer"
+                >
+                  Return to your uploaded patient ({sessionPatientName || 'Overview'})
+                </Link>
+                <Link
+                  to={`/dashboard/${review.patientId}`}
+                  className="rounded-full px-5 py-2.5 text-xs font-semibold text-zinc-300 bg-[#28282a] border border-white/10 hover:bg-[#323234] hover:text-white transition-all cursor-pointer"
+                >
+                  View {review.patientName ? `${review.patientName}'s` : 'Patient'} Care Plan
+                </Link>
+              </>
+            ) : (
+              <Link
+                to={`/dashboard/${review.patientId || sessionPatientId || 'demo'}`}
+                className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_20px_rgba(255,255,255,0.3)] hover:bg-[#e4e4e6] transition-all cursor-pointer"
+              >
+                View {review.patientName ? `${review.patientName}'s` : 'Patient'} Care Plan
+              </Link>
+            )}
             <Link
               to="/reviews"
               className="rounded-full px-5 py-2.5 text-xs font-semibold text-zinc-300 bg-[#28282a] border border-white/10 hover:bg-[#323234] hover:text-white transition-all cursor-pointer"
             >
               Return to Review Queue
-            </Link>
-            <Link
-              to={`/dashboard/${review.patientId || 'demo'}`}
-              className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_20px_rgba(255,255,255,0.3)] hover:bg-[#e4e4e6] transition-all cursor-pointer"
-            >
-              View Updated Care Plan
             </Link>
           </div>
         </Card>

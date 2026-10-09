@@ -1,7 +1,9 @@
 import { Activity, ShieldCheck, Terminal } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-export default function AuthLayout({ title, subtitle, children, footer }) {
+export default function AuthLayout({ title, subtitle, children, footer, role }) {
+  const isDoctor = role === 'doctor'
+
   return (
     <div className="flex min-h-screen flex-col justify-between bg-black text-white">
       {/* Dev banner */}
@@ -11,10 +13,17 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
             <Terminal className="h-3.5 w-3.5 text-zinc-400" />
             Demo Mode:
           </span>
-          <span className="text-zinc-400">
-            Email: <strong className="text-white font-semibold">demo@acentra.health</strong>{' '}
-            · Password: <strong className="text-white font-semibold">Acentra@2026</strong>
-          </span>
+          {isDoctor ? (
+            <span className="text-zinc-400">
+              Email: <strong className="text-white font-semibold">doctor@aegis.health</strong>{' '}
+              · Password: <strong className="text-white font-semibold">Aegis@2026</strong>
+            </span>
+          ) : (
+            <span className="text-zinc-400">
+              Email: <strong className="text-white font-semibold">demo@acentra.health</strong>{' '}
+              · Password: <strong className="text-white font-semibold">Acentra@2026</strong>
+            </span>
+          )}
         </div>
       </div>
 

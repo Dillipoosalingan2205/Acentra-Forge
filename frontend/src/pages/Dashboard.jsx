@@ -10,12 +10,14 @@ import PatientHeader from '@/components/dashboard/PatientHeader.jsx'
 import RecentActivity from '@/components/dashboard/RecentActivity.jsx'
 import SummaryCard from '@/components/dashboard/SummaryCard.jsx'
 import UpcomingPreview from '@/components/dashboard/UpcomingPreview.jsx'
+import { useApp } from '@/context/appContext.js'
 import { useTaskContext } from '@/context/TaskContext.jsx'
 import { getPatientPlan } from '@/services/mockApi.js'
 
 export default function Dashboard() {
   const { id } = useParams()
-  const { tasks, updateTaskStatus, activityFeed } = useTaskContext()
+  const { patientId: appPatientId, patientName: appPatientName, updatePatient } = useApp()
+  const { tasks, updateTaskStatus, activityFeed, refreshTasks } = useTaskContext()
 
   const [planResult, setPlanResult] = useState({ id: null, patient: null, error: null })
 
@@ -24,8 +26,18 @@ export default function Dashboard() {
 
     let active = true
 
+    // Refresh tasks for this patient immediately
+    refreshTasks(id)
+
     getPatientPlan(id)
-      .then((plan) => active && setPlanResult({ id, patient: plan.patient, error: null }))
+      .then((plan) => {
+        if (active) {
+          setPlanResult({ id, patient: plan.patient, error: null })
+          if (plan?.patient?.name && (appPatientId !== id || appPatientName !== plan.patient.name)) {
+            updatePatient(id, plan.patient.name)
+          }
+        }
+      })
       .catch((err) =>
         active &&
         setPlanResult({
@@ -35,10 +47,17 @@ export default function Dashboard() {
         }),
       )
 
+    // Also auto-refresh when window regains focus (e.g. returning from reviews tab/page)
+    const handleFocus = () => {
+      refreshTasks(id)
+    }
+    window.addEventListener('focus', handleFocus)
+
     return () => {
       active = false
+      window.removeEventListener('focus', handleFocus)
     }
-  }, [id])
+  }, [id, refreshTasks, updatePatient])
 
   const resolved = planResult.id === id ? planResult : null
   const patient = resolved?.patient ?? null
@@ -110,15 +129,17 @@ export default function Dashboard() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
-                  <h3 className="text-sm font-bold text-amber-300">1 item needs review</h3>
-                  <p className="text-xs text-amber-500/90 mt-0.5">Medication instruction requires confirmation.</p>
+                  <h3 className="text-sm font-bold text-amber-300">
+                    {needsReviewCount} {needsReviewCount === 1 ? 'item needs review' : 'items need review'}
+                  </h3>
+                  <p className="text-xs text-amber-500/90 mt-0.5">Discharge instruction requires clinician confirmation.</p>
                 </div>
               </div>
               <Link
-                to={`/medications/${id}`}
+                to="/reviews"
                 className="inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-wider text-black bg-white shadow-[0_0_0_1px_rgba(255,255,255,0.15),0_0_18px_rgba(255,255,255,0.25)] hover:bg-[#e4e4e6] hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0 cursor-pointer"
               >
-                Review Medication
+                Review Item
               </Link>
             </div>
           </div>
