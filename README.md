@@ -71,14 +71,29 @@ flowchart TD
 | :--- | :--- |
 | **Instant PDF Analysis** | Upload any discharge summary and watch real-time multi-agent processing steps with dynamic progress indicators. |
 | **Dynamic Patient Header** | Instantly displays the extracted patient name (*e.g., Eleanor Chen, Riley Thompson, Margaret K. Higgins*) and discharge date right at the top. |
+| **Dual Role-Based Portals** | Distinct entry points for **Patient** and **Doctor/Clinician** with role-tailored route protection and navigation. |
 | **Actionable Dashboard** | High-level metrics: Total Actions, Pending Tasks, Completed Items, and Needs Review alerts. |
 | **Interactive Care Timeline** | Chronological milestone tracker with overdue/upcoming tags and category badges. |
-| **Task Management** | Filter tasks by domain: *Appointments*, *Investigations*, *Referrals*, *Care Instructions*, *Medications*, and *Follow-up*. |
+| **Task Management & Persistence** | Complete tasks, track actions across sessions, and sync state persistently across the entire app. |
 | **Traceability & Citations** | Click any action or medication to inspect the source citation showing the exact document page and verbatim text quote. |
-| **Human Review Queue** | Clinician triage portal to review, comment on, and resolve flagged ambiguities before releasing tasks to patients. |
+| **Doctor-Only Human Review Queue** | Clinician triage portal to review, comment on, and resolve flagged ambiguities; approved actions automatically update dashboard metrics. |
 | **Provider Directory Finder** | Search and locate primary care providers, orthopedic surgeons, cardiologists, and physical therapy centers. |
 | **Multilingual Support** | Seamless toggle between English, Hindi, and Tamil for discharge guidance. |
 | **Premium Dark Glassmorphism** | Built with Tailwind CSS, sleek dark tones (`#000000`, `rgba(14, 14, 16, 0.95)`), custom Outfit/Inter typography, and subtle micro-animations. |
+
+---
+
+## 👥 Role-Based Authentication & Portals
+
+AEGIS includes a dual-portal architecture separating patient self-care from clinical verification:
+
+| Portal | Route | Demo Credentials | Capabilities & Permissions |
+| :--- | :--- | :--- | :--- |
+| **Patient Portal** | `/login/patient` | `demo@acentra.health`<br>`Acentra@2026` | Patient Overview, Care Timeline, Action Tasks, Care Instructions, Medications, Warning Signs, Source Citations, Provider Directory. (Cannot access or approve clinical review cases). |
+| **Doctor Portal** | `/login/doctor` | `doctor@aegis.health`<br>`Aegis@2026` | Complete clinical access: All patient views **plus** the **Human Review Queue** (`/reviews`) to inspect flagged ambiguities, add clinician resolution notes, and approve actions for patients. |
+
+*Quick Portal Switcher*: Access `/role-select` to choose either the Patient or Doctor portal.
+
 
 ---
 
@@ -153,27 +168,27 @@ Open a terminal and navigate to the `backend/` directory:
 ```bash
 cd backend
 
-# Create and activate a virtual environment
+# Create and activate a virtual environment (optional but recommended)
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install fastapi uvicorn sqlalchemy aiosqlite pydantic pydantic-settings pypdf python-multipart
+pip install -r requirements.txt  # or: pip install fastapi uvicorn sqlalchemy aiosqlite pydantic pydantic-settings pypdf python-multipart
 
 # Start the FastAPI development server
-uvicorn app.main:app --port 8001 --reload
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 The backend will start at:
-- **API Base URL**: `http://127.0.0.1:8001/api`
-- **Interactive OpenAPI Docs (Swagger UI)**: `http://127.0.0.1:8001/docs`
-- **Health Check**: `http://127.0.0.1:8001/health`
+- **API Base URL**: `http://127.0.0.1:8000/api`
+- **Interactive OpenAPI Docs (Swagger UI)**: `http://127.0.0.1:8000/docs`
+- **Health Check**: `http://127.0.0.1:8000/health`
 
 ---
 
 ### 2. Frontend Setup
 
-In a new terminal window, navigate to the `frontend/` directory:
+In a new terminal window, navigate to the `frontend/` directory (note: scripts must be executed inside `frontend/`):
 
 ```bash
 cd frontend
@@ -186,7 +201,9 @@ npm run dev
 ```
 
 The frontend application will launch at:
-- **Application URL**: `http://localhost:5173`
+- **Application URL**: `http://localhost:5173` (or `http://localhost:5174` if 5173 is in use)
+- **Role Portal Selection**: `http://localhost:5173/role-select`
+
 
 ---
 
