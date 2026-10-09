@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build and Production
+dist/
+dist-ssr/
+build/
+*.local
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Databases & Local Storage
+*.db
+*.sqlite
+*.sqlite3
+carecoord.db
+acentra.db
+
+# Documentation & Internal Summaries (Excluded per request)
+docs/
+PHASE2_SUMMARY.md
+FINAL_SUMMARY.md
+*SUMMARY*.md
+frontend/IMPLEMENTATION_SUMMARY.md
+frontend/PHASE_4_SUMMARY.md
+frontend/README.md
+backend/README.md
+
+# Logs & Environment
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.env
+.env.*
+!.env.example
+
+# IDE & OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Tool & MCP Caches
+.claude/
+.playwright-mcp/
+.pytest_cache/
