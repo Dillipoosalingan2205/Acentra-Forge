@@ -1,6 +1,0 @@
-{
-  "name": "Aegis - Agentic Hospital Discharge & Follow-up Coordinator",
-  "description": "Transforming unstructured clinical discharge summaries into actionable, multilingual, and safe patient recovery plans with audio transcription and clinical guardrails.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
