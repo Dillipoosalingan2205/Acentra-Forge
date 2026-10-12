@@ -1,4 +1,4 @@
-# AEGIS — Agentic Hospital Discharge & Follow-up Coordinator
+# A.E.G.I.S — Agentic Hospital Discharge & Follow-up Coordinator
 
 <div align="center">
 
